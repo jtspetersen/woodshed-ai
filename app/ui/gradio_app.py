@@ -302,8 +302,46 @@ def respond(message: dict, history: list[dict], creativity: str):
         yield partial
 
 
+# CDN script for ABC notation rendering (abcjs).  A MutationObserver
+# auto-renders ABC code blocks in chat messages into sheet music SVGs.
+# In-browser MIDI playback is deferred to the UI-upgrade phase.
+LAUNCH_HEAD = """\
+<script src="https://cdn.jsdelivr.net/npm/abcjs@6/dist/abcjs-basic-min.js"></script>
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    function renderABC() {
+        document.querySelectorAll('pre code').forEach(function(el) {
+            if (el.dataset.rendered) return;
+            var text = el.textContent.trim();
+            if (el.className.indexOf('language-abc') !== -1 ||
+                (text.startsWith('X:') && text.indexOf('K:') !== -1)) {
+                var container = document.createElement('div');
+                container.style.background = '#F7F4F1';
+                container.style.borderRadius = '8px';
+                container.style.padding = '12px';
+                container.style.margin = '8px 0';
+                var pre = el.closest('pre');
+                if (pre) {
+                    pre.parentNode.insertBefore(container, pre.nextSibling);
+                    pre.style.display = 'none';
+                }
+                if (typeof ABCJS !== 'undefined') {
+                    ABCJS.renderAbc(container, text, {responsive: 'resize'});
+                }
+                el.dataset.rendered = 'true';
+            }
+        });
+    }
+    new MutationObserver(renderABC).observe(document.body, {childList: true, subtree: true});
+    renderABC();
+});
+</script>
+"""
+
 def create_app() -> gr.Blocks:
     """Create and return the Gradio Blocks app."""
+
+    os.makedirs(str(config.LOCAL_MIDI_DIR), exist_ok=True)
 
     with gr.Blocks(title="Woodshed AI") as app:
 

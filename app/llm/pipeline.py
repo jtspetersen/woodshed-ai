@@ -15,10 +15,11 @@ from app.knowledge.vectorstore import VectorStore
 from app.llm.prompts import build_system_prompt
 from app.theory.tools import MUSIC_TOOLS as THEORY_TOOLS, TOOL_FUNCTIONS as THEORY_FUNCS
 from app.audio.tools import AUDIO_TOOLS, AUDIO_TOOL_FUNCTIONS
+from app.output.tools import OUTPUT_TOOLS, OUTPUT_TOOL_FUNCTIONS
 
-# Merge theory + audio tools
-MUSIC_TOOLS = THEORY_TOOLS + AUDIO_TOOLS
-TOOL_FUNCTIONS = {**THEORY_FUNCS, **AUDIO_TOOL_FUNCTIONS}
+# Merge theory + audio + output tools
+MUSIC_TOOLS = THEORY_TOOLS + AUDIO_TOOLS + OUTPUT_TOOLS
+TOOL_FUNCTIONS = {**THEORY_FUNCS, **AUDIO_TOOL_FUNCTIONS, **OUTPUT_TOOL_FUNCTIONS}
 
 MAX_TOOL_ROUNDS = 5
 
@@ -73,8 +74,12 @@ def route_model(user_message: str) -> str:
 
 # --- Tool execution helper ---
 
-def _execute_tool_calls(tool_calls, messages):
-    """Execute tool calls and append results to messages."""
+def _execute_tool_calls(tool_calls, messages, generated_files=None):
+    """Execute tool calls and append results to messages.
+
+    Args:
+        generated_files: Optional list to collect file paths from tool results.
+    """
     messages.append({
         "role": "assistant",
         "content": "",
@@ -100,6 +105,13 @@ def _execute_tool_calls(tool_calls, messages):
         else:
             result = {"error": f"Unknown tool: {name}"}
 
+        # Track generated files (MIDI, MusicXML, etc.)
+        if generated_files is not None and isinstance(result, dict):
+            for key in ("file_path", "midi_path"):
+                path = result.get(key)
+                if path and isinstance(path, str):
+                    generated_files.append(path)
+
         messages.append({
             "role": "tool",
             "content": json.dumps(result, default=str),
@@ -111,6 +123,7 @@ class MusicConversation:
 
     def __init__(self):
         self.messages: list[dict] = []
+        self.generated_files: list[str] = []
         self._vectorstore = _get_vectorstore()
 
     def send(
@@ -144,10 +157,11 @@ class MusicConversation:
         )
 
         # 4. Tool-call loop
+        self.generated_files = []
         for _ in range(MAX_TOOL_ROUNDS):
             if not response.message.tool_calls:
                 break
-            _execute_tool_calls(response.message.tool_calls, messages)
+            _execute_tool_calls(response.message.tool_calls, messages, self.generated_files)
             response = ollama.chat(
                 model=model,
                 messages=messages,
@@ -196,6 +210,7 @@ class MusicConversation:
         )
 
         # 4. If no tool calls, yield the already-generated response (no double-call)
+        self.generated_files = []
         if not response.message.tool_calls:
             final_text = response.message.content or ""
             self.messages.append({"role": "user", "content": user_message})
@@ -207,7 +222,7 @@ class MusicConversation:
         for _ in range(MAX_TOOL_ROUNDS):
             if not response.message.tool_calls:
                 break
-            _execute_tool_calls(response.message.tool_calls, messages)
+            _execute_tool_calls(response.message.tool_calls, messages, self.generated_files)
             response = ollama.chat(
                 model=model,
                 messages=messages,

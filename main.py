@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 import config
-from app.ui.gradio_app import create_app, theme, CUSTOM_CSS
+from app.ui.gradio_app import create_app, theme, CUSTOM_CSS, LAUNCH_HEAD
 
 _service_process = None
 
@@ -59,6 +59,7 @@ def main():
         server_port=7860,
         theme=theme,
         css=CUSTOM_CSS,
+        head=LAUNCH_HEAD,
     )
 
 
