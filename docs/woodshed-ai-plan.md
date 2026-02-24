@@ -90,16 +90,16 @@ requests>=2.31
 ```
 
 **Acceptance criteria:**
-- [ ] Virtual environment created and activated
-- [ ] All packages install without errors
-- [ ] `python -c "import music21; print(music21.VERSION_STR)"` prints version
-- [ ] `python -c "import chromadb; print(chromadb.__version__)"` prints version
-- [ ] `python -c "import gradio; print(gradio.__version__)"` prints version
-- [ ] `python -c "import ollama; print('ok')"` prints ok
-- [ ] `ollama list` shows Qwen 2.5:32B available
-- [ ] Directory structure created as specified
-- [ ] .env file created with placeholder values
-- [ ] .gitignore includes venv/, data/chromadb/, __pycache__/, .env
+- [x] Virtual environment created and activated
+- [x] All packages install without errors
+- [x] `python -c "import music21; print(music21.VERSION_STR)"` prints version
+- [x] `python -c "import chromadb; print(chromadb.__version__)"` prints version
+- [x] `python -c "import gradio; print(gradio.__version__)"` prints version
+- [x] `python -c "import ollama; print('ok')"` prints ok
+- [x] `ollama list` shows Qwen 2.5:32B available
+- [x] Directory structure created as specified
+- [x] .env file created with placeholder values
+- [x] .gitignore includes venv/, data/chromadb/, __pycache__/, .env
 
 ---
 
@@ -127,12 +127,12 @@ def get_embedding(text: str, model: str = "nomic-embed-text") -> list[float]
 ```
 
 **Acceptance criteria:**
-- [ ] Can send a basic chat message to Qwen 2.5:32B and get a response
-- [ ] Can send a message with tool definitions and get a tool_call response back
-- [ ] Streaming works (yields chunks)
-- [ ] Embedding generation works with nomic-embed-text
-- [ ] Connection errors are caught and return a useful error message
-- [ ] Test script passes: `python -m tests.test_ollama`
+- [x] Can send a basic chat message to Qwen 2.5:32B and get a response
+- [x] Can send a message with tool definitions and get a tool_call response back
+- [x] Streaming works (yields chunks)
+- [x] Embedding generation works with nomic-embed-text
+- [x] Connection errors are caught and return a useful error message
+- [x] Test script passes: `python -m tests.test_ollama`
 
 ---
 
@@ -186,11 +186,11 @@ MUSIC_TOOLS = [
 ```
 
 **Acceptance criteria:**
-- [ ] Each function works independently with simple test inputs
-- [ ] Functions return structured dicts (not raw music21 objects)
-- [ ] Tool schemas are valid and match function signatures
-- [ ] Error handling for invalid chord symbols (e.g., "Xzz9") returns a clear message
-- [ ] Test script passes: `python -m tests.test_music21`
+- [x] Each function works independently with simple test inputs
+- [x] Functions return structured dicts (not raw music21 objects)
+- [x] Tool schemas are valid and match function signatures
+- [x] Error handling for invalid chord symbols (e.g., "Xzz9") returns a clear message
+- [x] Test script passes: `python -m tests.test_music21`
 
 ---
 
@@ -228,13 +228,13 @@ def get_collection_stats() -> dict   # count of docs, categories breakdown
 ```
 
 **Acceptance criteria:**
-- [ ] Can ingest a sample .txt file and store it in ChromaDB
-- [ ] Embeddings are generated via Ollama nomic-embed-text
-- [ ] Search returns relevant chunks for a query like "secondary dominant chords"
-- [ ] Category filtering works
-- [ ] Collection persists between runs (data saved to disk)
-- [ ] Stats function shows document count and category breakdown
-- [ ] Test script passes: `python -m tests.test_knowledge`
+- [x] Can ingest a sample .txt file and store it in ChromaDB
+- [x] Embeddings are generated via Ollama nomic-embed-text
+- [x] Search returns relevant chunks for a query like "secondary dominant chords"
+- [x] Category filtering works
+- [x] Collection persists between runs (data saved to disk)
+- [x] Stats function shows document count and category breakdown
+- [x] Test script passes: `python -m tests.test_knowledge`
 
 ---
 
@@ -266,10 +266,10 @@ Curate and ingest the initial set of music theory sources. This is a content tas
    - Category tags: as appropriate per article
 
 **Acceptance criteria:**
-- [ ] At least 500 chunks ingested across all sources
-- [ ] All 7 categories represented (harmony, melody, rhythm, form, production, genre, instrumentation)
-- [ ] Custom reference documents created and ingested
-- [ ] Search quality spot-check: 10 sample queries return relevant results
+- [x] At least 500 chunks ingested across all sources
+- [x] All 7 categories represented (harmony, melody, rhythm, form, production, genre, instrumentation)
+- [x] Custom reference documents created and ingested
+- [x] Search quality spot-check: 10 sample queries return relevant results
   - "What chords work in a blues progression?"
   - "How do secondary dominants work?"
   - "What scale sounds melancholy?"
@@ -340,12 +340,12 @@ class MusicConversation:
 ```
 
 **Acceptance criteria:**
-- [ ] Full pipeline works end-to-end: user message → context retrieval → LLM → response
-- [ ] LLM successfully calls music21 tools when appropriate
-- [ ] Tool results are fed back to LLM and incorporated into response
-- [ ] Conversation history is maintained across messages
-- [ ] System prompt produces helpful, theory-grounded responses
-- [ ] Test conversation passes:
+- [x] Full pipeline works end-to-end: user message → context retrieval → LLM → response
+- [x] LLM successfully calls music21 tools when appropriate
+- [x] Tool results are fed back to LLM and incorporated into response
+- [x] Conversation history is maintained across messages
+- [x] System prompt produces helpful, theory-grounded responses
+- [x] Test conversation passes:
   - "What key is this progression in: Am, F, C, G?" → Should identify key and provide roman numerals
   - "Suggest a jazzy chord to follow Dm7 → G7" → Should suggest Cmaj7 or similar with explanation
   - "I want something melancholy in E minor" → Should suggest appropriate chords/scales
@@ -374,14 +374,14 @@ Build a browser-based chat interface using Gradio that connects to the conversat
 **Launch command:** `python main.py`
 
 **Acceptance criteria:**
-- [ ] App launches in browser at localhost:7860
-- [ ] User can type a message and receive a response
-- [ ] Conversation history displays correctly
-- [ ] New conversation button works
-- [ ] Model selector shows available models
-- [ ] Temperature slider affects response variety
-- [ ] Status indicator shows system health
-- [ ] App handles errors gracefully (e.g., Ollama not running)
+- [x] App launches in browser at localhost:7860
+- [x] User can type a message and receive a response
+- [x] Conversation history displays correctly
+- [x] New conversation button works
+- [ ] Model selector shows available models *(deferred — using config-based model selection)*
+- [x] Temperature slider affects response variety *(implemented as Creativity radio: Precise/Balanced/Creative)*
+- [x] Status indicator shows system health
+- [x] App handles errors gracefully (e.g., Ollama not running)
 
 ---
 
@@ -428,17 +428,18 @@ Run a thorough test of the complete Phase 1 system. Test with real songwriting s
 
 ---
 
-## UI Migration: Gradio → Next.js/React (Phase 2 candidate)
+## UI Migration: Gradio → Next.js/React (Phase 4 — NEXT)
 
-> **Context:** Phase 1 ships with a Gradio-based chat UI. While functional, Gradio's `ChatInterface` is opinionated about layout and limits fine-grained control over component positioning, styling, and custom interactions. For a polished production UI, migrate to a Next.js/React frontend.
+> **Context:** Phases 1–3 ship with a Gradio-based chat UI. While functional, Gradio's `ChatInterface` is opinionated about layout, sanitizes HTML (preventing rich widget embedding like MIDI players), and limits fine-grained control over component positioning, styling, and custom interactions. Phase 4 migrates to a custom Next.js/React frontend.
 
 **Migration path:**
-1. Add a **FastAPI** backend layer exposing the Python pipeline (chat endpoint with SSE streaming, status endpoint, knowledge base stats)
+1. Add a **FastAPI** backend layer exposing the Python pipeline (chat endpoint with SSE streaming, status endpoint, file serving)
 2. Build a **Next.js/React** frontend consuming those endpoints
 3. Apply the full Woodshed design system (amber/bark palette, Nunito fonts, vintage analog studio aesthetic) with complete layout control
-4. The Python backend (pipeline, theory engine, knowledge base) requires no changes — it's already cleanly separated from the UI layer
+4. Build proper React components for MIDI playback, notation rendering, guitar tab display, and file downloads
+5. The Python backend (pipeline, theory engine, knowledge base, output modules) requires no changes — it's already cleanly separated from the UI layer
 
-**Priority:** After Phase 1 stabilization, before or alongside Phase 2 audio features.
+**Why now:** The MIDI player (Task 3.4) was the tipping point — Gradio's markdown sanitization makes embedded rich components unreliable. A custom frontend gives us full control over rendering.
 
 ---
 
@@ -456,81 +457,101 @@ Run a thorough test of the complete Phase 1 system. Test with real songwriting s
 
 ---
 
-## PHASE 2: Audio/MIDI Analysis (Tasks 2.1–2.5)
+## PHASE 2: Audio/MIDI Analysis (Tasks 2.1–2.5) ✅ COMPLETE
 
-> Phase 2 tasks are outlined at a high level. Detailed task specs should be written after Phase 1 is complete and stable.
+### Task 2.1 — Install Audio Pipeline Dependencies ✅
+Installed pretty_midi, mido. Basic Pitch runs in a separate microservice venv.
 
-### Task 2.1 — Install Audio Pipeline Dependencies
-Install Basic Pitch, librosa, pretty_midi, mido. Verify each with test inputs.
+### Task 2.2 — Audio-to-MIDI Transcription ✅
+**Implemented as Approach A (microservice).** Basic Pitch runs in a separate Python venv (`services/basic-pitch/`) as a Flask microservice on port 8765. The main app sends audio files to the microservice and receives MIDI back. Auto-starts/stops with `main.py`.
 
-### Task 2.2 — Audio-to-MIDI Transcription
+> **Note:** When basic-pitch adds Python 3.13+ support, can migrate to direct integration (Approach B) and remove the microservice.
 
-> **Status:** Deferred — `basic-pitch` does not support Python 3.13+ (as of Feb 2026).
+### Task 2.3 — MIDI Analysis Integration ✅
+`app/audio/analyze.py` parses MIDI files using music21 + pretty_midi. Extracts key, tempo, time signature, chord progression, note statistics, and structure. Returns structured analysis dicts.
 
-**Goal:** Take an audio file (wav, mp3, m4a) and return a MIDI representation. Handle voice memos, guitar recordings, and humming.
+### Task 2.4 — Feed Audio Analysis into Conversation ✅
+Uploaded MIDI/audio files are automatically analyzed and injected into the conversation context via `MIDI_CONTEXT_TEMPLATE` in the system prompt. LLM sees key, tempo, chords, and structure.
 
-**Approach A — Microservice (interim):**
-Run basic-pitch in a separate Python 3.12 virtual environment as a lightweight HTTP microservice. The main app sends audio files to the microservice and receives the resulting MIDI file back. This keeps the main codebase on Python 3.13+ while still offering audio-to-MIDI functionality.
-
-- Separate `venv` with Python 3.12 + basic-pitch
-- Simple FastAPI or Flask endpoint: `POST /transcribe` (accepts audio, returns MIDI)
-- Main app calls the microservice, saves the returned MIDI, and feeds it into the existing MIDI analysis pipeline
-- Runs locally alongside the main app (e.g., `localhost:8765`)
-
-**Approach B — Direct integration (target):**
-When basic-pitch adds Python 3.13 support, install it directly into the main project and remove the microservice. This simplifies the codebase to a single environment.
-
-**Compatibility flag:** `app/audio/transcribe.py` contains `TRANSCRIPTION_AVAILABLE = False`. Flip this to `True` and implement direct integration once basic-pitch supports Python 3.13+. Check the [basic-pitch issues tracker](https://github.com/spotify/basic-pitch/issues) periodically for updates.
-
-### Task 2.3 — MIDI Analysis Integration
-Parse MIDI files (uploaded or transcribed) using music21. Extract key, tempo, chord progression, melody notes, time signature. Return structured analysis.
-
-### Task 2.4 — Feed Audio Analysis into Conversation
-When user uploads audio/MIDI, automatically analyze it and inject the analysis into the conversation context. LLM can then discuss and suggest based on what it "heard."
-
-### Task 2.5 — UI Updates for Audio/MIDI Upload
-Add file upload to Gradio UI. Show transcription results, waveform visualization, detected chords/key. Audio playback of uploaded file.
+### Task 2.5 — UI Updates for Audio/MIDI Upload ✅
+Gradio UI accepts `.mid`, `.midi`, `.wav`, `.mp3`, `.m4a` uploads via multimodal chat input. Analysis results are shown in the chat and fed to the LLM.
 
 ---
 
-## PHASE 3: Playable Output (Tasks 3.1–3.5)
+## PHASE 3: Playable Output (Tasks 3.1–3.5) ✅ COMPLETE
 
-> Phase 3 tasks are outlined at a high level. Detailed task specs should be written after Phase 2 is complete and stable.
+### Task 3.1 — MIDI Generation from Suggestions ✅
+`app/output/midi_gen.py` — LLM tools `generate_progression_midi` and `generate_scale_midi` create MIDI files from chord progressions and scales using music21. Supports configurable tempo, time signature, beats per chord, and instrument (piano/guitar/bass). Files saved to `data/local/midi/`. 11 tests.
 
-### Task 3.1 — MIDI Generation from Suggestions
-When LLM suggests a progression or melody, generate a MIDI file using music21. Save to data/midi/.
+### Task 3.2 — Notation Rendering ✅
+`app/output/notation.py` — Generates ABC notation from chord progressions and scales. Rendered client-side via abcjs CDN using a MutationObserver that auto-detects ABC code blocks. No LilyPond/MuseScore installation needed. 11 tests.
 
-### Task 3.2 — Notation Rendering
-Render music21 output as standard notation (PNG/SVG via LilyPond or VexFlow). Display in Gradio UI.
+### Task 3.3 — Guitar Tab Generation ✅
+`app/output/guitar_tab.py` — Generates ASCII chord diagrams from the `GUITAR_VOICINGS` dict in the theory engine. Supports single chords and full progressions. Pure text output renders naturally in chat. 8 tests.
 
-### Task 3.3 — Guitar Tab Generation
-Convert notation to guitar tablature using music21's tab capabilities. Display alongside standard notation.
+### Task 3.4 — In-Browser MIDI Playback ⏳ DEFERRED
+`app/output/playback.py` exists but is not wired up. The html-midi-player web component approach was unreliable within Gradio's markdown sanitization. **Deferred to the UI overhaul** where a custom frontend will have direct control over component rendering. MIDI files are generated and saved locally for playback in external apps.
 
-### Task 3.4 — In-Browser MIDI Playback
-Integrate Tone.js or FluidSynth for playing generated MIDI in the browser. Play/pause/tempo controls.
-
-### Task 3.5 — Export & DAW Integration
-Download buttons for MIDI files, notation PDFs, and tab PDFs. Document how to import into common DAWs (GarageBand, Logic, Ableton, Reaper).
+### Task 3.5 — Export & DAW Integration ✅
+`app/output/export.py` — Exports chord progressions as MusicXML (via music21) and plain-text tab files. Includes DAW import guides for GarageBand, Logic, Ableton, Reaper, and FL Studio. `export_for_daw` tool bundles MIDI + MusicXML + guide in one call. 11 tests.
 
 ---
 
 ## Task Dependency Map
 
 ```
-1.1 Project Setup
- └── 1.2 Ollama Client
-      ├── 1.3 Music21 Theory Engine
-      │    └── 1.6 RAG Pipeline ──── 1.7 Gradio UI ──── 1.8 Testing
-      └── 1.4 Knowledge Ingestion
-           └── 1.5 Seed Knowledge Base
-                └── 1.6 RAG Pipeline
+Phase 1 (COMPLETE):
+1.1 ── 1.2 ── 1.3 ── 1.6 ── 1.7 ── 1.8 ✅
+             1.4 ── 1.5 ─┘
 
-Phase 2 depends on Phase 1 completion:
-1.8 ──── 2.1 ──── 2.2 ──── 2.3 ──── 2.4 ──── 2.5
+Phase 2 (COMPLETE):
+2.1 ── 2.2 ── 2.3 ── 2.4 ── 2.5 ✅
 
-Phase 3 depends on Phase 2 completion:
-2.5 ──── 3.1 ──── 3.2 ──── 3.3 ──── 3.4 ──── 3.5
+Phase 3 (COMPLETE — 3.4 playback deferred to Phase 4):
+3.1 ── 3.3 ── 3.2 ── 3.4⏳ ── 3.5 ✅
+
+Phase 4 (NEXT):
+4.1 ── 4.2 ── 4.3 ── 4.4 ── 4.5
 ```
+
+---
+
+## PHASE 4: UI Overhaul — Next.js/React Frontend
+
+> **Status: NEXT.** Phases 1–3 complete with 107 tests passing. The Gradio UI is functional but limited — markdown sanitization prevents rich widget embedding (MIDI player), layout is constrained by `ChatInterface`, and custom interactions are difficult. Phase 4 replaces Gradio with a custom frontend for full control over rendering, styling, and interactive components.
+
+### Task 4.1 — FastAPI Backend
+Extract the Python pipeline into a FastAPI backend with proper API endpoints:
+- `POST /chat` — SSE streaming chat endpoint (replaces Gradio's `respond()`)
+- `GET /status` — System health (Ollama, knowledge base, transcription service)
+- `POST /upload` — MIDI/audio file upload and analysis
+- `GET /files/{path}` — Serve generated MIDI/MusicXML files for download
+- Keep all existing Python code (pipeline, theory engine, knowledge base, output modules) unchanged
+
+### Task 4.2 — Next.js Project Setup
+Set up a Next.js/React frontend with the Woodshed design system (amber/bark palette, Nunito Sans font, vintage analog studio aesthetic). Tailwind CSS for styling.
+
+### Task 4.3 — Chat Interface
+Build a custom chat component with:
+- Streaming message display (SSE)
+- Markdown rendering with syntax highlighting
+- File upload (drag-and-drop MIDI/audio)
+- Creativity control
+- Conversation history
+
+### Task 4.4 — Rich Output Components
+Build proper React components for the output types that Gradio couldn't handle well:
+- **MIDI Player** — html-midi-player web component with piano-roll visualizer (no more markdown hacks)
+- **Sheet Music** — abcjs rendered in a dedicated component
+- **Guitar Tab** — styled monospace display with chord diagrams
+- **File Downloads** — MIDI, MusicXML, tab text export buttons
+
+### Task 4.5 — Polish & Integration
+- Status bar with live Ollama/knowledge base/transcription indicators
+- Example prompts / conversation starters
+- Mobile-responsive layout
+- In-browser MIDI playback (completing deferred Task 3.4)
+- Remove Gradio dependency
 
 ---
 
