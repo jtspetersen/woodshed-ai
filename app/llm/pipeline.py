@@ -7,6 +7,8 @@
 import json
 import re
 from collections.abc import Generator
+from dataclasses import dataclass
+from typing import Literal
 
 import ollama
 
@@ -22,6 +24,73 @@ MUSIC_TOOLS = THEORY_TOOLS + AUDIO_TOOLS + OUTPUT_TOOLS
 TOOL_FUNCTIONS = {**THEORY_FUNCS, **AUDIO_TOOL_FUNCTIONS, **OUTPUT_TOOL_FUNCTIONS}
 
 MAX_TOOL_ROUNDS = 5
+
+
+# --- Stream event types ---
+
+@dataclass
+class StreamToken:
+    """A token of LLM output text."""
+    type: Literal["token"] = "token"
+    text: str = ""
+
+@dataclass
+class StreamStatus:
+    """A status update about what the pipeline is doing."""
+    type: Literal["status"] = "status"
+    step: str = ""
+    detail: str | None = None
+
+@dataclass
+class StreamToolCall:
+    """A tool call being executed."""
+    type: Literal["tool_call"] = "tool_call"
+    name: str = ""
+    arguments: dict | None = None
+    result: dict | str | None = None
+
+@dataclass
+class StreamThinking:
+    """LLM internal reasoning (parsed from Qwen3 <think> blocks)."""
+    type: Literal["thinking"] = "thinking"
+    text: str = ""
+
+StreamEvent = StreamToken | StreamStatus | StreamToolCall | StreamThinking
+
+
+# --- Musician-friendly tool status messages ---
+
+TOOL_STATUS_MESSAGES: dict[str, str] = {
+    "analyze_chord": "Breaking down that chord...",
+    "analyze_progression": "Analyzing the progression...",
+    "suggest_next_chord": "Finding what comes next...",
+    "get_scale_for_mood": "Matching scales to the vibe...",
+    "detect_key": "Figuring out the key...",
+    "get_chord_voicings": "Looking up voicings...",
+    "get_related_chords": "Exploring related chords...",
+    "generate_progression_midi": "Building your MIDI file...",
+    "generate_scale_midi": "Writing out the scale...",
+    "generate_guitar_tab": "Drawing up the tab...",
+    "generate_notation": "Writing notation...",
+    "export_for_daw": "Packaging for your DAW...",
+    "analyze_midi": "Studying the MIDI file...",
+    "transcribe_audio": "Transcribing the audio...",
+}
+
+
+# --- Thinking parser (Qwen3 <think> blocks) ---
+
+_THINK_RE = re.compile(r"<think>(.*?)</think>", re.DOTALL)
+
+
+def _strip_thinking(text: str) -> tuple[str | None, str]:
+    """Extract <think> block from LLM response. Returns (thinking, clean_text)."""
+    match = _THINK_RE.search(text)
+    if not match:
+        return None, text
+    thinking = match.group(1).strip()
+    clean = (text[:match.start()] + text[match.end():]).strip()
+    return thinking or None, clean
 
 # Shared VectorStore instance (avoids recreating ChromaDB client per message)
 _vectorstore: VectorStore | None = None
@@ -181,19 +250,37 @@ class MusicConversation:
         temperature: float | None = None,
         category_filter: str | None = None,
         midi_summary: str | None = None,
-    ) -> Generator[str, None, None]:
-        """Send a message and stream the response token by token.
+    ) -> Generator[StreamEvent, None, None]:
+        """Send a message and stream the response as structured events.
 
+        Yields StreamStatus, StreamToolCall, StreamThinking, and StreamToken events.
         Tool calls are resolved non-streaming, then the final response
         is streamed. If no tool calls occur, streams directly (no double-call).
         """
         temperature = temperature if temperature is not None else config.TEMPERATURE
+
+        yield StreamStatus(step="Warming up...")
         model = route_model(user_message)
+        model_short = model.split(":")[0]
+        is_quick = model == config.FAST_MODEL
+        yield StreamStatus(
+            step="Warming up...",
+            detail=f"Going with {model_short} — {'quick answer' if is_quick else 'deep dive'}",
+        )
 
         # 1. RAG retrieval
+        yield StreamStatus(step="Checking my notes...")
         context_chunks = self._vectorstore.search(
             user_message, n_results=config.RAG_RESULTS, category_filter=category_filter
         )
+        n_chunks = len(context_chunks)
+        if n_chunks:
+            categories = {c.get("category", "general") for c in context_chunks if isinstance(c, dict)}
+            cat_str = ", ".join(sorted(categories)) if categories else "music theory"
+            yield StreamStatus(
+                step="Checking my notes...",
+                detail=f"Found {n_chunks} relevant section{'s' if n_chunks != 1 else ''} on {cat_str}",
+            )
 
         # 2. Build message list
         system_msg = build_system_prompt(context_chunks, midi_summary=midi_summary)
@@ -202,6 +289,7 @@ class MusicConversation:
         messages.append({"role": "user", "content": user_message})
 
         # 3. First call — non-streaming to check for tool calls
+        yield StreamStatus(step="Noodling on it...")
         response = ollama.chat(
             model=model,
             messages=messages,
@@ -213,16 +301,49 @@ class MusicConversation:
         self.generated_files = []
         if not response.message.tool_calls:
             final_text = response.message.content or ""
+            thinking, clean_text = _strip_thinking(final_text)
+            if thinking:
+                yield StreamThinking(text=thinking)
             self.messages.append({"role": "user", "content": user_message})
-            self.messages.append({"role": "assistant", "content": final_text})
-            yield final_text
+            self.messages.append({"role": "assistant", "content": clean_text})
+            yield StreamToken(text=clean_text)
             return
 
-        # 5. Tool-call loop (non-streaming)
+        # 5. Tool-call loop (non-streaming) — yield tool call events
         for _ in range(MAX_TOOL_ROUNDS):
             if not response.message.tool_calls:
                 break
-            _execute_tool_calls(response.message.tool_calls, messages, self.generated_files)
+            for tc in response.message.tool_calls:
+                name = tc.function.name
+                args = tc.function.arguments
+                step_msg = TOOL_STATUS_MESSAGES.get(name, f"Running {name}...")
+                yield StreamStatus(step=step_msg)
+                # Execute tool
+                if name in TOOL_FUNCTIONS:
+                    try:
+                        result = TOOL_FUNCTIONS[name](**args)
+                    except Exception as e:
+                        result = {"error": str(e)}
+                else:
+                    result = {"error": f"Unknown tool: {name}"}
+                # Track generated files
+                if isinstance(result, dict):
+                    for key in ("file_path", "midi_path"):
+                        path = result.get(key)
+                        if path and isinstance(path, str):
+                            self.generated_files.append(path)
+                yield StreamToolCall(name=name, arguments=args, result=result)
+                # Append to messages for next LLM call
+                messages.append({
+                    "role": "assistant",
+                    "content": "",
+                    "tool_calls": [{"function": {"name": name, "arguments": args}}],
+                })
+                messages.append({
+                    "role": "tool",
+                    "content": json.dumps(result, default=str),
+                })
+
             response = ollama.chat(
                 model=model,
                 messages=messages,
@@ -231,25 +352,92 @@ class MusicConversation:
             )
 
         # 6. Stream the final post-tool response
+        yield StreamStatus(step="Putting it all together...")
         if not response.message.tool_calls:
-            full_text = ""
-            for chunk in ollama.chat(
-                model=model,
-                messages=messages,
-                options={"temperature": temperature},
-                stream=True,
-            ):
-                token = chunk.message.content or ""
-                full_text += token
-                yield token
-
-            self.messages.append({"role": "user", "content": user_message})
-            self.messages.append({"role": "assistant", "content": full_text})
+            yield from self._stream_response(model, messages, temperature)
         else:
             final_text = response.message.content or ""
+            thinking, clean_text = _strip_thinking(final_text)
+            if thinking:
+                yield StreamThinking(text=thinking)
             self.messages.append({"role": "user", "content": user_message})
-            self.messages.append({"role": "assistant", "content": final_text})
-            yield final_text
+            self.messages.append({"role": "assistant", "content": clean_text})
+            yield StreamToken(text=clean_text)
+
+    def _stream_response(
+        self, model: str, messages: list[dict], temperature: float
+    ) -> Generator[StreamEvent, None, None]:
+        """Stream a response, separating <think> blocks from content tokens."""
+        in_thinking = False
+        detect_buffer = ""
+        detected = False
+        full_text = ""
+
+        for chunk in ollama.chat(
+            model=model,
+            messages=messages,
+            options={"temperature": temperature},
+            stream=True,
+        ):
+            token = chunk.message.content or ""
+            full_text += token
+
+            # Detection phase: check if response starts with <think>
+            if not detected:
+                detect_buffer += token
+                stripped = detect_buffer.lstrip()
+
+                if len(stripped) < 7:
+                    continue
+
+                if stripped.startswith("<think>"):
+                    in_thinking = True
+                    detected = True
+                    after = stripped[7:]
+                    if "</think>" in after:
+                        end = after.index("</think>")
+                        if after[:end].strip():
+                            yield StreamThinking(text=after[:end].strip())
+                        in_thinking = False
+                        rest = after[end + 8:].lstrip("\n")
+                        if rest:
+                            yield StreamToken(text=rest)
+                    elif after.strip():
+                        yield StreamThinking(text=after)
+                else:
+                    detected = True
+                    yield StreamToken(text=detect_buffer)
+                continue
+
+            # Post-detection: route to thinking or content
+            if in_thinking:
+                if "</think>" in token:
+                    parts = token.split("</think>", 1)
+                    if parts[0].strip():
+                        yield StreamThinking(text=parts[0])
+                    in_thinking = False
+                    rest = parts[1].lstrip("\n")
+                    if rest:
+                        yield StreamToken(text=rest)
+                else:
+                    yield StreamThinking(text=token)
+            else:
+                yield StreamToken(text=token)
+
+        # Flush anything still in the detect buffer
+        if not detected and detect_buffer:
+            yield StreamToken(text=detect_buffer)
+
+        # Store clean text in conversation history
+        _, clean_text = _strip_thinking(full_text)
+        user_msg = messages[-1]["content"] if messages else ""
+        # Walk back to find the user message (last user role)
+        for msg in reversed(messages):
+            if msg.get("role") == "user":
+                user_msg = msg["content"]
+                break
+        self.messages.append({"role": "user", "content": user_msg})
+        self.messages.append({"role": "assistant", "content": clean_text})
 
     def reset(self):
         """Clear conversation history."""

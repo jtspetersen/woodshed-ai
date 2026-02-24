@@ -489,8 +489,8 @@ Gradio UI accepts `.mid`, `.midi`, `.wav`, `.mp3`, `.m4a` uploads via multimodal
 ### Task 3.3 — Guitar Tab Generation ✅
 `app/output/guitar_tab.py` — Generates ASCII chord diagrams from the `GUITAR_VOICINGS` dict in the theory engine. Supports single chords and full progressions. Pure text output renders naturally in chat. 8 tests.
 
-### Task 3.4 — In-Browser MIDI Playback ⏳ DEFERRED
-`app/output/playback.py` exists but is not wired up. The html-midi-player web component approach was unreliable within Gradio's markdown sanitization. **Deferred to the UI overhaul** where a custom frontend will have direct control over component rendering. MIDI files are generated and saved locally for playback in external apps.
+### Task 3.4 — In-Browser MIDI Playback ✅ (completed in Phase 4, Task 4.8)
+In-browser MIDI playback via html-midi-player web components in the React frontend. Piano-roll visualizer, download button, inline rendering in chat messages.
 
 ### Task 3.5 — Export & DAW Integration ✅
 `app/output/export.py` — Exports chord progressions as MusicXML (via music21) and plain-text tab files. Includes DAW import guides for GarageBand, Logic, Ableton, Reaper, and FL Studio. `export_for_daw` tool bundles MIDI + MusicXML + guide in one call. 11 tests.
@@ -507,51 +507,48 @@ Phase 1 (COMPLETE):
 Phase 2 (COMPLETE):
 2.1 ── 2.2 ── 2.3 ── 2.4 ── 2.5 ✅
 
-Phase 3 (COMPLETE — 3.4 playback deferred to Phase 4):
-3.1 ── 3.3 ── 3.2 ── 3.4⏳ ── 3.5 ✅
+Phase 3 (COMPLETE):
+3.1 ── 3.3 ── 3.2 ── 3.4 ── 3.5 ✅
 
-Phase 4 (NEXT):
-4.1 ── 4.2 ── 4.3 ── 4.4 ── 4.5
+Phase 4 (COMPLETE):
+4.1 ── 4.2 ── 4.3 ── 4.4 ── 4.5 ── 4.6 ── 4.7 ── 4.8 ── 4.9 ── 4.10 ✅
 ```
 
 ---
 
-## PHASE 4: UI Overhaul — Next.js/React Frontend
+## PHASE 4: UI Overhaul — Next.js/React Frontend ✅ COMPLETE
 
-> **Status: NEXT.** Phases 1–3 complete with 107 tests passing. The Gradio UI is functional but limited — markdown sanitization prevents rich widget embedding (MIDI player), layout is constrained by `ChatInterface`, and custom interactions are difficult. Phase 4 replaces Gradio with a custom frontend for full control over rendering, styling, and interactive components.
+> Gradio replaced with FastAPI backend + Next.js/React frontend. Full control over rendering, styling, and interactive music components. 96 frontend tests + 29 backend API tests + 10 E2E tests. Coverage: backend API 98%, frontend 89%.
 
-### Task 4.1 — FastAPI Backend
-Extract the Python pipeline into a FastAPI backend with proper API endpoints:
-- `POST /chat` — SSE streaming chat endpoint (replaces Gradio's `respond()`)
-- `GET /status` — System health (Ollama, knowledge base, transcription service)
-- `POST /upload` — MIDI/audio file upload and analysis
-- `GET /files/{path}` — Serve generated MIDI/MusicXML files for download
-- Keep all existing Python code (pipeline, theory engine, knowledge base, output modules) unchanged
+### Task 4.1 — FastAPI Skeleton + Status Endpoint + Remove Gradio ✅
+FastAPI app factory with CORS, session management (`X-Session-ID` header), `GET /api/status` endpoint. Gradio removed. `main.py` launches FastAPI + transcription service.
 
-### Task 4.2 — Next.js Project Setup
-Set up a Next.js/React frontend with the Woodshed design system (amber/bark palette, Nunito Sans font, vintage analog studio aesthetic). Tailwind CSS for styling.
+### Task 4.2 — Chat Endpoint with SSE Streaming ✅
+`POST /api/chat` with SSE events (token, files, done, error). `POST /api/chat/reset`, `GET /api/chat/history`. Creativity maps to temperature.
 
-### Task 4.3 — Chat Interface
-Build a custom chat component with:
-- Streaming message display (SSE)
-- Markdown rendering with syntax highlighting
-- File upload (drag-and-drop MIDI/audio)
-- Creativity control
-- Conversation history
+### Task 4.3 — File Upload + Download Endpoints ✅
+`POST /api/files/upload` (MIDI/audio analysis), `GET /api/files/download/{filename}`, `GET /api/files/midi/{filename}` (base64 data URI for playback). Path traversal protection.
 
-### Task 4.4 — Rich Output Components
-Build proper React components for the output types that Gradio couldn't handle well:
-- **MIDI Player** — html-midi-player web component with piano-roll visualizer (no more markdown hacks)
-- **Sheet Music** — abcjs rendered in a dedicated component
-- **Guitar Tab** — styled monospace display with chord diagrams
-- **File Downloads** — MIDI, MusicXML, tab text export buttons
+### Task 4.4 — FastAPI Integration Tests ✅
+Integration tests with live Ollama (marked `@pytest.mark.integration`). Session isolation, full chat flow, upload-then-chat. `tests/conftest.py` shared fixtures.
 
-### Task 4.5 — Polish & Integration
-- Status bar with live Ollama/knowledge base/transcription indicators
-- Example prompts / conversation starters
-- Mobile-responsive layout
-- In-browser MIDI playback (completing deferred Task 3.4)
-- Remove Gradio dependency
+### Task 4.5 — Next.js Project Scaffold + Design System ✅
+Next.js 14 + TypeScript + Tailwind with full Woodshed design tokens (amber/bark palette, Nunito fonts). API proxy in `next.config.mjs`. Jest + Playwright configured.
+
+### Task 4.6 — Reusable UI Components ✅
+StatusBar, VUMeter, HintBox, ChordTag, CreativityControl, Button, Logo, ExamplePrompts — all using Tailwind design tokens.
+
+### Task 4.7 — Chat Interface Components ✅
+`useChat` hook with rAF-batched token accumulation, `useStatus` polling hook, `ChatInterface`, `MessageBubble` (markdown + chord tags), `ChatInput` (auto-grow textarea, file attach). 96 unit tests passing.
+
+### Task 4.8 — Sheet Music + MIDI Playback + Guitar Tab ✅
+`SheetMusic` (abcjs), `MidiPlayer` (html-midi-player web components), `GuitarTab` (styled ASCII). `music-detection.ts` for inline rendering in chat messages. Completing deferred Task 3.4.
+
+### Task 4.9 — Dev Launcher + E2E Tests ✅
+`dev.py` unified launcher (3 services, color-coded output). 10 Playwright E2E tests: chat flow, file upload, music rendering.
+
+### Task 4.10 — Coverage Enforcement + README Update ✅
+Coverage thresholds: backend API ≥90% (pytest-cov), frontend ≥80% lines (Jest). README updated with new architecture, quickstart, and project structure.
 
 ---
 

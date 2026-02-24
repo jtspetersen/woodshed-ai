@@ -32,6 +32,14 @@ data/chromadb/
 Thumbs.db
 .DS_Store
 
+# Frontend
+frontend/node_modules/
+frontend/.next/
+frontend/out/
+
+# Dev launcher PID tracking
+.dev.pids
+
 # Logs
 *.log
 

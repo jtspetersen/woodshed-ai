@@ -1,0 +1,10 @@
+[tool.pytest.ini_options]
+markers = [
+    "integration: Tests requiring live Ollama (deselect with '-m \"not integration\"')",
+]
+
+[tool.coverage.run]
+source = ["app/api"]
+
+[tool.coverage.report]
+fail_under = 90

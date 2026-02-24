@@ -37,3 +37,7 @@ TRANSCRIPTION_SERVICE_URL = os.getenv(
 
 # ChromaDB
 CHROMA_COLLECTION = "music_theory"
+
+# API
+API_PORT = int(os.getenv("API_PORT", "8000"))
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3001")

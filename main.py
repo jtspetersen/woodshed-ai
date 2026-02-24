@@ -3,12 +3,11 @@
 # SPDX-License-Identifier: GPL-3.0-or-later
 
 import atexit
-import os
 import subprocess
-import sys
+
+import uvicorn
 
 import config
-from app.ui.gradio_app import create_app, theme, CUSTOM_CSS, LAUNCH_HEAD
 
 _service_process = None
 
@@ -53,13 +52,13 @@ def _stop_transcription_service():
 def main():
     _start_transcription_service()
 
-    app = create_app()
-    app.launch(
-        server_name="0.0.0.0",
-        server_port=7860,
-        theme=theme,
-        css=CUSTOM_CSS,
-        head=LAUNCH_HEAD,
+    print(f"Starting Woodshed AI API on port {config.API_PORT}...")
+    uvicorn.run(
+        "app.api.main:create_app",
+        factory=True,
+        host="0.0.0.0",
+        port=config.API_PORT,
+        reload=False,
     )
 
 
