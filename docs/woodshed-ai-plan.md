@@ -419,12 +419,12 @@ Run a thorough test of the complete Phase 1 system. Test with real songwriting s
    - Requests outside scope ("write me lyrics" — should handle gracefully)
 
 **Acceptance criteria:**
-- [ ] All 5 scenario categories produce reasonable responses
-- [ ] No crashes or unhandled exceptions
-- [ ] Tool calls succeed at least 80% of the time
-- [ ] Knowledge base context visibly improves response quality vs. no RAG
-- [ ] Response time under 30 seconds for typical queries
-- [ ] Document any bugs or limitations found for future fixes
+- [x] All 5 scenario categories produce reasonable responses
+- [x] No crashes or unhandled exceptions
+- [x] Tool calls succeed at least 80% of the time
+- [x] Knowledge base context visibly improves response quality vs. no RAG
+- [x] Response time under 30 seconds for typical queries
+- [x] Document any bugs or limitations found for future fixes
 
 ---
 
