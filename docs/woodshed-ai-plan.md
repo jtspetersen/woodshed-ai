@@ -428,6 +428,34 @@ Run a thorough test of the complete Phase 1 system. Test with real songwriting s
 
 ---
 
+## UI Migration: Gradio → Next.js/React (Phase 2 candidate)
+
+> **Context:** Phase 1 ships with a Gradio-based chat UI. While functional, Gradio's `ChatInterface` is opinionated about layout and limits fine-grained control over component positioning, styling, and custom interactions. For a polished production UI, migrate to a Next.js/React frontend.
+
+**Migration path:**
+1. Add a **FastAPI** backend layer exposing the Python pipeline (chat endpoint with SSE streaming, status endpoint, knowledge base stats)
+2. Build a **Next.js/React** frontend consuming those endpoints
+3. Apply the full Woodshed design system (amber/bark palette, Nunito fonts, vintage analog studio aesthetic) with complete layout control
+4. The Python backend (pipeline, theory engine, knowledge base) requires no changes — it's already cleanly separated from the UI layer
+
+**Priority:** After Phase 1 stabilization, before or alongside Phase 2 audio features.
+
+---
+
+## Conversation History Compaction (Future Enhancement)
+
+> **Context:** Currently, full conversation history is sent to the LLM on every message. The 128k context window handles typical sessions easily, but very long sessions (200+ exchanges) or multi-session continuity will eventually need a smarter approach.
+
+**Planned approach:**
+1. **Summarization** — When history exceeds a threshold, use the fast model to compress older messages into a concise summary (key topics discussed, decisions made, musical context established)
+2. **Summary + recent messages** — Send the compressed summary as a "conversation so far" block, followed by the last N verbatim messages. The user gets continuity without hitting context limits.
+3. **Session persistence** — Store conversation history (and summaries) to disk so users can resume previous sessions across app restarts
+4. **Cross-session memory** — Track user preferences discovered during conversations (preferred genres, instrument, skill level) and load them into future sessions
+
+**Priority:** When users report losing context in long sessions, or when multi-session support is needed.
+
+---
+
 ## PHASE 2: Audio/MIDI Analysis (Tasks 2.1–2.5)
 
 > Phase 2 tasks are outlined at a high level. Detailed task specs should be written after Phase 1 is complete and stable.

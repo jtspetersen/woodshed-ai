@@ -174,7 +174,14 @@ def _get_or_create_conversation(request: gr.Request | None = None) -> MusicConve
     return MusicConversation()
 
 
-def respond(message: str, history: list[dict], temperature: float, category: str):
+CREATIVITY_MAP = {
+    "More Precise": 0.3,
+    "Balanced": 0.7,
+    "More Creative": 1.1,
+}
+
+
+def respond(message: str, history: list[dict], creativity: str):
     """Chat response function for Gradio ChatInterface."""
     conv = MusicConversation()
 
@@ -183,11 +190,11 @@ def respond(message: str, history: list[dict], temperature: float, category: str
         if msg["role"] in ("user", "assistant"):
             conv.messages.append(msg)
 
-    cat_filter = category if category != "All" else None
+    temperature = CREATIVITY_MAP.get(creativity, 0.7)
 
     # Stream the response
     partial = ""
-    for token in conv.send_stream(message, temperature=temperature, category_filter=cat_filter):
+    for token in conv.send_stream(message, temperature=temperature):
         partial += token
         yield partial
 
@@ -221,22 +228,13 @@ def create_app() -> gr.Blocks:
                 max_lines=3,
             ),
             additional_inputs=[
-                gr.Slider(
-                    minimum=0.0,
-                    maximum=1.5,
-                    value=config.TEMPERATURE,
-                    step=0.1,
-                    label="Temperature",
-                ),
-                gr.Dropdown(
-                    choices=["All", "harmony", "melody", "rhythm", "form", "genre", "instrumentation", "production"],
-                    value="All",
-                    label="Knowledge Category",
+                gr.Radio(
+                    choices=["More Precise", "Balanced", "More Creative"],
+                    value="Balanced",
+                    label="Creativity",
                 ),
             ],
-            additional_inputs_accordion=gr.Accordion(
-                label="Settings", open=False
-            ),
+            additional_inputs_accordion="Creativity",
             examples=[
                 ["Analyze the chord Dm7 for me"],
                 ["What key is this progression in: Am, F, C, G?"],
@@ -246,14 +244,9 @@ def create_app() -> gr.Blocks:
                 ["What's a good substitution for a G7 chord?"],
             ],
             title=None,
-            description=None,
-        )
-
-        # Hint box
-        gr.Markdown(
-            "**Try asking about:** chord analysis, progressions, scales for a mood, "
-            "guitar voicings, chord substitutions, or what chord comes next.",
-            elem_id="hint-box",
+            description="Ask anything about chords, progressions, scales, or songwriting — "
+            "Woodshed AI will analyze, explain, and suggest ideas grounded in music theory. "
+            "Here are some examples to get you started:",
         )
 
     return app

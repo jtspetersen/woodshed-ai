@@ -14,10 +14,14 @@ ROOT_DIR = Path(__file__).parent
 # Ollama
 OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
 LLM_MODEL = os.getenv("LLM_MODEL", "qwen2.5:32b")
+FAST_MODEL = os.getenv("FAST_MODEL", "qwen2.5:7b")
 EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
 
 # Generation
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
+
+# Performance
+RAG_RESULTS = int(os.getenv("RAG_RESULTS", "3"))
 
 # Data paths
 CHROMA_PERSIST_DIR = ROOT_DIR / os.getenv("CHROMA_PERSIST_DIR", "data/chromadb")
