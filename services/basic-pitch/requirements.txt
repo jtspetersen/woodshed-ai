@@ -1,0 +1,14 @@
+# basic-pitch requires --no-deps because its metadata demands tensorflow,
+# but on Windows the ONNX backend works fine without it.
+# Install with:  pip install --no-deps basic-pitch
+#                pip install -r requirements.txt
+flask>=3.0
+librosa>=0.8.0
+numpy>=1.18
+scipy>=1.4.1
+pretty_midi>=0.2.9
+scikit-learn
+resampy>=0.2.2
+onnxruntime>=1.10
+mir-eval>=0.6
+typing-extensions

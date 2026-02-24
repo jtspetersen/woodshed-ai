@@ -4,9 +4,14 @@
 
 """Browser-based chat interface for Woodshed AI."""
 
+import os
+import shutil
+
 import gradio as gr
 
 import config
+from app.audio.analyze import analyze_midi, get_midi_summary
+from app.audio.transcribe import is_transcription_available, transcribe_audio
 from app.llm.pipeline import MusicConversation
 from app.llm.ollama_client import is_available, list_models
 from app.knowledge.vectorstore import VectorStore
@@ -161,6 +166,11 @@ def _get_status_text() -> str:
     except Exception:
         parts.append("Knowledge base: not loaded")
 
+    if is_transcription_available():
+        parts.append("Transcription: available")
+    else:
+        parts.append("Transcription: offline")
+
     return " | ".join(parts)
 
 
@@ -181,20 +191,113 @@ CREATIVITY_MAP = {
 }
 
 
-def respond(message: str, history: list[dict], creativity: str):
-    """Chat response function for Gradio ChatInterface."""
+def _process_midi_upload(file_path: str) -> tuple[str, str | None]:
+    """Copy an uploaded MIDI file to local storage and analyze it.
+
+    Returns:
+        Tuple of (analysis_text_for_chat, midi_summary_for_llm).
+    """
+    # Copy to local MIDI directory
+    os.makedirs(str(config.LOCAL_MIDI_DIR), exist_ok=True)
+    filename = os.path.basename(file_path)
+    dest = str(config.LOCAL_MIDI_DIR / filename)
+    shutil.copy2(file_path, dest)
+
+    # Analyze
+    analysis = analyze_midi(dest)
+    if "error" in analysis:
+        return f"**MIDI upload error:** {analysis['error']}", None
+
+    summary = analysis.get("summary", "")
+    return f"**MIDI Analysis:**\n```\n{summary}\n```\n\n", summary
+
+
+AUDIO_EXTENSIONS = (".wav", ".mp3", ".m4a", ".ogg", ".flac")
+MIDI_EXTENSIONS = (".mid", ".midi")
+
+
+def _process_audio_upload(file_path: str) -> tuple[str, str | None]:
+    """Transcribe an uploaded audio file to MIDI, then analyze it.
+
+    Returns:
+        Tuple of (status_text_for_chat, midi_summary_for_llm).
+    """
+    if not is_transcription_available():
+        return (
+            "**Audio transcription is not available** — "
+            "the transcription service isn't running. "
+            "Start it and try again, or upload a MIDI file instead.",
+            None,
+        )
+
+    result = transcribe_audio(file_path)
+    if "error" in result:
+        return f"**Transcription error:** {result['error']}", None
+
+    midi_path = result["midi_path"]
+    analysis = analyze_midi(midi_path)
+    if "error" in analysis:
+        return f"**MIDI analysis error:** {analysis['error']}", None
+
+    summary = analysis.get("summary", "")
+    original = result.get("original_file", "audio file")
+    return (
+        f"**Transcribed `{original}` to MIDI and analyzed:**\n```\n{summary}\n```\n\n",
+        summary,
+    )
+
+
+def respond(message: dict, history: list[dict], creativity: str):
+    """Chat response function for Gradio ChatInterface (multimodal)."""
     conv = MusicConversation()
 
     # Replay history into the conversation
     for msg in history:
         if msg["role"] in ("user", "assistant"):
-            conv.messages.append(msg)
+            # Extract text content from multimodal messages
+            content = msg.get("content", "")
+            if isinstance(content, list):
+                text_parts = [
+                    p["text"] for p in content
+                    if isinstance(p, dict) and p.get("type") == "text"
+                ]
+                content = " ".join(text_parts)
+            if isinstance(content, str) and content.strip():
+                conv.messages.append({"role": msg["role"], "content": content})
 
     temperature = CREATIVITY_MAP.get(creativity, 0.7)
 
+    # Extract text and files from multimodal input
+    user_text = message.get("text", "") if isinstance(message, dict) else str(message)
+    files = message.get("files", []) if isinstance(message, dict) else []
+
+    # Process uploaded files (MIDI or audio)
+    midi_summary = None
+    midi_prefix = ""
+    for file_path in files:
+        lower = file_path.lower()
+        if lower.endswith(MIDI_EXTENSIONS):
+            prefix, summary = _process_midi_upload(file_path)
+            midi_prefix += prefix
+            if summary:
+                midi_summary = summary
+            break
+        elif lower.endswith(AUDIO_EXTENSIONS):
+            prefix, summary = _process_audio_upload(file_path)
+            midi_prefix += prefix
+            if summary:
+                midi_summary = summary
+            break
+
+    # Build the user message
+    if not user_text.strip() and midi_summary:
+        user_text = "I uploaded a file. Can you analyze it and tell me about it?"
+
     # Stream the response
-    partial = ""
-    for token in conv.send_stream(message, temperature=temperature):
+    partial = midi_prefix
+    for token in conv.send_stream(
+        user_text, temperature=temperature, midi_summary=midi_summary
+    ):
         partial += token
         yield partial
 
@@ -217,15 +320,16 @@ def create_app() -> gr.Blocks:
         # Chat interface
         chat = gr.ChatInterface(
             fn=respond,
+            multimodal=True,
             chatbot=gr.Chatbot(
                 height=500,
                 show_label=False,
                 elem_id="chatbot",
             ),
-            textbox=gr.Textbox(
-                placeholder="Ask me about chords, progressions, scales, or songwriting...",
+            textbox=gr.MultimodalTextbox(
+                placeholder="Ask about chords, progressions, scales... or upload a MIDI or audio file",
                 show_label=False,
-                max_lines=3,
+                file_types=[".mid", ".midi", ".wav", ".mp3", ".m4a"],
             ),
             additional_inputs=[
                 gr.Radio(
@@ -236,16 +340,18 @@ def create_app() -> gr.Blocks:
             ],
             additional_inputs_accordion="Creativity",
             examples=[
-                ["Analyze the chord Dm7 for me"],
-                ["What key is this progression in: Am, F, C, G?"],
-                ["Suggest a jazzy chord to follow Dm7 -> G7"],
-                ["I want something that sounds melancholy in E minor"],
-                ["How do I play a Cmaj7 on guitar?"],
-                ["What's a good substitution for a G7 chord?"],
+                [{"text": "Analyze the chord Dm7 for me"}],
+                [{"text": "What key is this progression in: Am, F, C, G?"}],
+                [{"text": "Suggest a jazzy chord to follow Dm7 -> G7"}],
+                [{"text": "I want something that sounds melancholy in E minor"}],
+                [{"text": "How do I play a Cmaj7 on guitar?"}],
+                [{"text": "What's a good substitution for a G7 chord?"}],
             ],
             title=None,
             description="Ask anything about chords, progressions, scales, or songwriting — "
             "Woodshed AI will analyze, explain, and suggest ideas grounded in music theory. "
+            "You can upload a MIDI file for analysis, or an audio file (.wav, .mp3, .m4a) "
+            "to transcribe to MIDI first. "
             "Here are some examples to get you started:",
         )
 

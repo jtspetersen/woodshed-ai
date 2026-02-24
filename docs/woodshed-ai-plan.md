@@ -464,7 +464,23 @@ Run a thorough test of the complete Phase 1 system. Test with real songwriting s
 Install Basic Pitch, librosa, pretty_midi, mido. Verify each with test inputs.
 
 ### Task 2.2 — Audio-to-MIDI Transcription
-Build wrapper around Basic Pitch that takes an audio file (wav, mp3, m4a) and returns a MIDI representation. Handle voice memos, guitar recordings, and humming.
+
+> **Status:** Deferred — `basic-pitch` does not support Python 3.13+ (as of Feb 2026).
+
+**Goal:** Take an audio file (wav, mp3, m4a) and return a MIDI representation. Handle voice memos, guitar recordings, and humming.
+
+**Approach A — Microservice (interim):**
+Run basic-pitch in a separate Python 3.12 virtual environment as a lightweight HTTP microservice. The main app sends audio files to the microservice and receives the resulting MIDI file back. This keeps the main codebase on Python 3.13+ while still offering audio-to-MIDI functionality.
+
+- Separate `venv` with Python 3.12 + basic-pitch
+- Simple FastAPI or Flask endpoint: `POST /transcribe` (accepts audio, returns MIDI)
+- Main app calls the microservice, saves the returned MIDI, and feeds it into the existing MIDI analysis pipeline
+- Runs locally alongside the main app (e.g., `localhost:8765`)
+
+**Approach B — Direct integration (target):**
+When basic-pitch adds Python 3.13 support, install it directly into the main project and remove the microservice. This simplifies the codebase to a single environment.
+
+**Compatibility flag:** `app/audio/transcribe.py` contains `TRANSCRIPTION_AVAILABLE = False`. Flip this to `True` and implement direct integration once basic-pitch supports Python 3.13+. Check the [basic-pitch issues tracker](https://github.com/spotify/basic-pitch/issues) periodically for updates.
 
 ### Task 2.3 — MIDI Analysis Integration
 Parse MIDI files (uploaded or transcribed) using music21. Extract key, tempo, chord progression, melody notes, time signature. Return structured analysis.

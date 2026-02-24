@@ -364,14 +364,14 @@ def detect_key(notes_list: list[str]) -> dict:
         for alt in k.alternateInterpretations[:3]:
             alt_keys.append({
                 "key": f"{alt.tonic.name} {alt.mode}",
-                "confidence": round(alt.correlationCoefficient, 3),
+                "confidence": round(alt.correlationCoefficient * 100),
             })
     except Exception:
         pass
 
     return {
         "key": str(k),
-        "confidence": round(k.correlationCoefficient, 3),
+        "confidence": round(k.correlationCoefficient * 100),
         "alternatives": alt_keys,
     }
 

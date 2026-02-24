@@ -13,7 +13,12 @@ import ollama
 import config
 from app.knowledge.vectorstore import VectorStore
 from app.llm.prompts import build_system_prompt
-from app.theory.tools import MUSIC_TOOLS, TOOL_FUNCTIONS
+from app.theory.tools import MUSIC_TOOLS as THEORY_TOOLS, TOOL_FUNCTIONS as THEORY_FUNCS
+from app.audio.tools import AUDIO_TOOLS, AUDIO_TOOL_FUNCTIONS
+
+# Merge theory + audio tools
+MUSIC_TOOLS = THEORY_TOOLS + AUDIO_TOOLS
+TOOL_FUNCTIONS = {**THEORY_FUNCS, **AUDIO_TOOL_FUNCTIONS}
 
 MAX_TOOL_ROUNDS = 5
 
@@ -113,6 +118,7 @@ class MusicConversation:
         user_message: str,
         temperature: float | None = None,
         category_filter: str | None = None,
+        midi_summary: str | None = None,
     ) -> str:
         """Send a message and return the assistant's response."""
         temperature = temperature if temperature is not None else config.TEMPERATURE
@@ -124,7 +130,7 @@ class MusicConversation:
         )
 
         # 2. Build message list
-        system_msg = build_system_prompt(context_chunks)
+        system_msg = build_system_prompt(context_chunks, midi_summary=midi_summary)
         messages = [{"role": "system", "content": system_msg}]
         messages.extend(self.messages)
         messages.append({"role": "user", "content": user_message})
@@ -160,6 +166,7 @@ class MusicConversation:
         user_message: str,
         temperature: float | None = None,
         category_filter: str | None = None,
+        midi_summary: str | None = None,
     ) -> Generator[str, None, None]:
         """Send a message and stream the response token by token.
 
@@ -175,7 +182,7 @@ class MusicConversation:
         )
 
         # 2. Build message list
-        system_msg = build_system_prompt(context_chunks)
+        system_msg = build_system_prompt(context_chunks, midi_summary=midi_summary)
         messages = [{"role": "system", "content": system_msg}]
         messages.extend(self.messages)
         messages.append({"role": "user", "content": user_message})

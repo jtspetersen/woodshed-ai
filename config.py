@@ -30,5 +30,10 @@ LOCAL_DATA_DIR = ROOT_DIR / os.getenv("LOCAL_DATA_DIR", "data/local")
 LOCAL_SOURCES_DIR = LOCAL_DATA_DIR / "sources"
 LOCAL_MIDI_DIR = LOCAL_DATA_DIR / "midi"
 
+# Transcription microservice
+TRANSCRIPTION_SERVICE_URL = os.getenv(
+    "TRANSCRIPTION_SERVICE_URL", "http://localhost:8765"
+)
+
 # ChromaDB
 CHROMA_COLLECTION = "music_theory"

@@ -25,6 +25,10 @@ When you have tools available:
 - Use detect_key when given a set of notes
 - Use get_chord_voicings for guitar fingerings
 - Use get_related_chords for substitutions and alternatives
+- When the user uploads a MIDI file, you'll receive an automatic analysis \
+including key, tempo, chords, and structure — use it to inform your response
+- When the user uploads an audio file (.wav, .mp3, .m4a), it will be automatically \
+transcribed to MIDI and analyzed — you'll receive the same analysis as a MIDI upload
 
 Keep responses conversational but informative. Use markdown formatting for \
 readability — bold for chord names, lists for options, headers for sections \
@@ -43,9 +47,24 @@ verbatim or mention that you're reading from a knowledge base. Just weave \
 the information naturally into your answer.\
 """
 
+MIDI_CONTEXT_TEMPLATE = """\
+The user uploaded a MIDI file. Here is the analysis:
 
-def build_system_prompt(context_chunks: list[dict] | None = None) -> str:
-    """Build the full system prompt, optionally with RAG context."""
+---
+{midi_analysis}
+---
+
+Use this analysis to inform your response. Reference specific chords, key, \
+tempo, and other details from the file when relevant. Speak naturally about \
+what you observe in the music.\
+"""
+
+
+def build_system_prompt(
+    context_chunks: list[dict] | None = None,
+    midi_summary: str | None = None,
+) -> str:
+    """Build the full system prompt, optionally with RAG context and MIDI analysis."""
     prompt = SYSTEM_PROMPT
 
     if context_chunks:
@@ -54,5 +73,8 @@ def build_system_prompt(context_chunks: list[dict] | None = None) -> str:
         )
         if context_text.strip():
             prompt += "\n\n" + CONTEXT_TEMPLATE.format(context=context_text)
+
+    if midi_summary:
+        prompt += "\n\n" + MIDI_CONTEXT_TEMPLATE.format(midi_analysis=midi_summary)
 
     return prompt

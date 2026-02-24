@@ -96,7 +96,7 @@ def test_detect_key():
     pp(result)
     assert "error" not in result
     assert result["key"]
-    assert isinstance(result["confidence"], float)
+    assert isinstance(result["confidence"], (int, float))
 
 
 def test_get_chord_voicings():
