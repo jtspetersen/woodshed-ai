@@ -14,7 +14,7 @@ from app.api.deps import get_session, get_session_id
 from app.api.schemas import ChatRequest, ChatHistoryResponse
 from app.api.sessions import SessionData
 from app.api import sessions
-from app.llm.pipeline import StreamToken, StreamStatus, StreamToolCall, StreamThinking
+from app.llm.pipeline import StreamToken, StreamStatus, StreamToolCall, StreamThinking, StreamPart
 
 router = APIRouter()
 
@@ -81,6 +81,11 @@ async def chat(
                             "arguments": event.arguments,
                             "result": event.result,
                         }, default=str),
+                    }
+                elif isinstance(event, StreamPart):
+                    yield {
+                        "event": f"part:{event.part_type}",
+                        "data": json.dumps(event.data, default=str),
                     }
         finally:
             await future

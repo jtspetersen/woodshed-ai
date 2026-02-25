@@ -27,11 +27,7 @@ AUDIO_TOOLS = [
         "type": "function",
         "function": {
             "name": "analyze_uploaded_midi",
-            "description": (
-                "Analyze an uploaded MIDI file to extract key, tempo, time signature, "
-                "instruments, chord progression, and note content. Use this when the "
-                "user uploads a MIDI file and asks about it."
-            ),
+            "description": "Analyze a MIDI file: key, tempo, chords, instruments.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -48,11 +44,7 @@ AUDIO_TOOLS = [
         "type": "function",
         "function": {
             "name": "transcribe_audio_file",
-            "description": (
-                "Transcribe an audio file (wav, mp3, m4a) to MIDI and analyze it. "
-                "Returns key, tempo, chords, and other musical information extracted "
-                "from the audio. Use this when the user uploads an audio file."
-            ),
+            "description": "Transcribe audio to MIDI and analyze it.",
             "parameters": {
                 "type": "object",
                 "properties": {

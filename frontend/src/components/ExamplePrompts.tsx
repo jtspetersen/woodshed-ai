@@ -3,12 +3,12 @@ interface ExamplePromptsProps {
 }
 
 const PROMPTS = [
-  "Analyze the chord Dm7 for me",
+  "What are the notes in a Dm7 chord?",
   "What key is this progression in: Am, F, C, G?",
+  "I want to write something that sounds like a rainy afternoon",
+  "Help me make this chorus more interesting: C, G, Am, F",
   "Suggest a jazzy chord to follow Dm7 -> G7",
-  "I want something that sounds melancholy in E minor",
-  "How do I play a Cmaj7 on guitar?",
-  "What's a good substitution for a G7 chord?",
+  "I'm stuck on my bridge — the verse is in D minor",
 ];
 
 export default function ExamplePrompts({ onSelect }: ExamplePromptsProps) {

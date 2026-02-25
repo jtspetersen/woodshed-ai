@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef, useCallback, useEffect } from "react";
-import type { DisplayMessage } from "@/lib/types";
+import type { ContentPart, DisplayMessage } from "@/lib/types";
 import type { Creativity } from "@/components/CreativityControl";
 import { streamChat, resetChat } from "@/lib/api";
 import { getSessionId, resetSessionId } from "@/lib/session";
@@ -36,7 +36,15 @@ export function useChat() {
     setMessages((prev) => {
       const next = [...prev];
       const last = next[next.length - 1];
-      next[next.length - 1] = { ...last, content: last.content + buffered };
+      // Update content (backward compat) and parts[] simultaneously
+      const parts = [...(last.parts ?? [])];
+      const lastPart = parts[parts.length - 1];
+      if (lastPart && lastPart.type === "text") {
+        parts[parts.length - 1] = { type: "text", text: lastPart.text + buffered };
+      } else {
+        parts.push({ type: "text", text: buffered });
+      }
+      next[next.length - 1] = { ...last, content: last.content + buffered, parts };
       return next;
     });
   }, []);
@@ -112,6 +120,31 @@ export function useChat() {
               return next;
             });
           },
+          onPart: (part: ContentPart) => {
+            // Non-text parts break the current text stream —
+            // flush tokens first so text part is finalized
+            if (part.type !== "text") {
+              flushTokens();
+            }
+            setMessages((prev) => {
+              const next = [...prev];
+              const last = next[next.length - 1];
+              const parts = [...(last.parts ?? [])];
+              if (part.type === "text") {
+                // Append to last text part or create new
+                const lastPart = parts[parts.length - 1];
+                if (lastPart && lastPart.type === "text") {
+                  parts[parts.length - 1] = { type: "text", text: lastPart.text + part.text };
+                } else {
+                  parts.push(part);
+                }
+              } else {
+                parts.push(part);
+              }
+              next[next.length - 1] = { ...last, parts };
+              return next;
+            });
+          },
           onDone: () => {
             flushTokens();
             setIsStreaming(false);
@@ -149,7 +182,14 @@ export function useChat() {
       setMessages((prev) => {
         const next = [...prev];
         const last = next[next.length - 1];
-        next[next.length - 1] = { ...last, content: last.content + buffered };
+        const parts = [...(last.parts ?? [])];
+        const lastPart = parts[parts.length - 1];
+        if (lastPart && lastPart.type === "text") {
+          parts[parts.length - 1] = { type: "text", text: lastPart.text + buffered };
+        } else {
+          parts.push({ type: "text", text: buffered });
+        }
+        next[next.length - 1] = { ...last, content: last.content + buffered, parts };
         return next;
       });
     }

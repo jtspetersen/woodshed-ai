@@ -8,6 +8,12 @@
 const CHORD_RE =
   /\b([A-G][#b]?)(maj7|maj9|maj|min7|min9|min|m7b5|m7|m9|m11|mmaj7|m|dim7|dim|aug7|aug|sus2|sus4|sus|add9|6\/9|7#9|7b9|7#5|7b5|13|11|9|7|6)\b/g;
 
+// Bare major chord regex: matches single-letter chords (A, C, D, etc.) only when
+// they appear in a chord-sequence context (next to dashes, arrows, commas with other chords)
+// e.g. "Em - Am - D - C" or "G, C, D"
+const BARE_CHORD_RE =
+  /(?<=[\s,\-–—→>])\b([A-G][#b]?)\b(?=\s*[\s,\-–—→><]|\s*$)/g;
+
 function escapeHtml(text: string): string {
   return text
     .replace(/&/g, "&amp;")
@@ -38,15 +44,42 @@ export function renderMarkdown(text: string): string {
   // 5. Italic (*...*)
   html = html.replace(/\*(.+?)\*/g, "<em>$1</em>");
 
+  // 5b. Markdown links [text](url) — strip file download links
+  //     (generated files have dedicated download buttons already)
+  html = html.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    (_, text: string, href: string) => {
+      const lower = text.toLowerCase();
+      if (
+        lower.includes("download") ||
+        lower.includes("midi file") ||
+        href === "&quot;#&quot;" ||
+        href === "#" ||
+        href.endsWith(".mid") ||
+        href.endsWith(".midi")
+      ) {
+        return "";
+      }
+      return `<a href="${href}">${text}</a>`;
+    },
+  );
+
   // 6. Chord symbols — wrap in chord-tag span (outside code blocks)
-  const parts = html.split(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>)/g);
+  const parts = html.split(/(<pre[\s\S]*?<\/pre>|<code[\s\S]*?<\/code>|<span class="chord-tag">[\s\S]*?<\/span>)/g);
   html = parts
     .map((part) => {
-      if (part.startsWith("<pre") || part.startsWith("<code")) return part;
-      return part.replace(
+      if (part.startsWith("<pre") || part.startsWith("<code") || part.startsWith('<span class="chord-tag"')) return part;
+      // First pass: chords with explicit quality suffix (Dm7, Cmaj7, etc.)
+      let result = part.replace(
         CHORD_RE,
         '<span class="chord-tag">$&</span>',
       );
+      // Second pass: bare major chords in sequence context (D, C, A next to dashes/commas)
+      result = result.replace(
+        BARE_CHORD_RE,
+        '<span class="chord-tag">$1</span>',
+      );
+      return result;
     })
     .join("");
 

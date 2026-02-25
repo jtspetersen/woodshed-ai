@@ -43,7 +43,7 @@ describe("MessageBubble", () => {
     expect(strong.tagName).toBe("STRONG");
   });
 
-  it("renders file download links", () => {
+  it("does not render file download link for MIDI files (they have inline players)", () => {
     const msg: DisplayMessage = {
       id: "4",
       role: "assistant",
@@ -51,12 +51,36 @@ describe("MessageBubble", () => {
       files: ["progression.mid"],
     };
     render(<MessageBubble message={msg} />);
+    expect(screen.queryByTestId("file-link")).toBeNull();
+  });
+
+  it("renders file download links for non-MIDI files", () => {
+    const msg: DisplayMessage = {
+      id: "7",
+      role: "assistant",
+      content: "Here is your export",
+      files: ["progression.musicxml"],
+    };
+    render(<MessageBubble message={msg} />);
     const links = screen.getAllByTestId("file-link");
     expect(links).toHaveLength(1);
     expect(links[0]).toHaveAttribute(
       "href",
-      "/api/files/download/progression.mid",
+      "/api/files/download/progression.musicxml",
     );
+  });
+
+  it("filters MIDI from download links but keeps non-MIDI files", () => {
+    const msg: DisplayMessage = {
+      id: "8",
+      role: "assistant",
+      content: "Here are your files",
+      files: ["progression.mid", "export.musicxml"],
+    };
+    render(<MessageBubble message={msg} />);
+    const links = screen.getAllByTestId("file-link");
+    expect(links).toHaveLength(1);
+    expect(links[0]).toHaveTextContent("export.musicxml");
   });
 
   it("does not render file section when no files", () => {

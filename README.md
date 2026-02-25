@@ -21,7 +21,7 @@ Runs entirely on your machine. No cloud APIs, no data leaving your computer.
 
 **Playable Output**
 - Generate MIDI files from suggested chord progressions and scales
-- In-browser MIDI playback with piano-roll visualizer
+- In-browser MIDI playback with piano-roll visualizer and note labels
 - Render ABC sheet music notation inline (via abcjs)
 - Display ASCII guitar tablature with chord diagrams
 - Export to MusicXML for DAW import (GarageBand, Logic, Ableton, Reaper, FL Studio)
@@ -29,6 +29,19 @@ Runs entirely on your machine. No cloud APIs, no data leaving your computer.
 **Knowledge-Augmented**
 - RAG pipeline backed by ChromaDB with curated music theory reference docs
 - Covers chord substitution, genre conventions, scales/modes, song structure, arrangement, melody writing, and more
+
+## Conversational Design
+
+Woodshed AI is designed to feel like a trusted creative advisor — not a search engine that dumps everything at once.
+
+**Voice & Tone:** Plainspoken, musically grounded, genuine. The agent speaks like someone who's spent years woodshedding, gigging, and studying harmony — and loves helping other musicians find their sound. Theory serves the music, not the other way around.
+
+**Pacing:**
+- **Specific requests** (chord analysis, theory questions) get a direct answer followed by a curious musical follow-up that goes one level deeper.
+- **Open or ambiguous requests** ("I want something sad") get a brief focusing question with 2-3 concrete directions to choose from.
+- Suggestions are offered progressively — the agent doesn't fire every tool at once. MIDI, notation, and tabs are offered as follow-ups.
+
+**Conversation context** persists across turns. The agent remembers the key, chords, and direction established earlier in the conversation and builds on them. Tool results are condensed in history to maximize context window usage without losing continuity.
 
 ## Quickstart
 
@@ -73,6 +86,7 @@ LLM_MODEL=qwen2.5:32b
 EMBEDDING_MODEL=nomic-embed-text
 OLLAMA_HOST=http://localhost:11434
 TEMPERATURE=0.7
+NUM_CTX=8192
 ```
 
 See [config.py](config.py) for all available settings.
@@ -124,7 +138,7 @@ The service starts automatically when you run `python main.py` or `python dev.py
 ```
 ┌─────────────────┐     ┌──────────────────┐     ┌─────────────┐
 │  Next.js/React  │────▶│  FastAPI Backend  │────▶│   Ollama    │
-│  :3001          │ API │  :8000            │     │   :11434    │
+│  :3001          │ SSE │  :8000            │     │   :11434    │
 └─────────────────┘     └──────────────────┘     └─────────────┘
                               │
                         ┌─────┴──────┐
@@ -135,9 +149,13 @@ The service starts automatically when you run `python main.py` or `python dev.py
                    └────────┘  └─────────────┘
 ```
 
-**Frontend** (Next.js 14 + React + Tailwind) handles the UI: chat interface with SSE streaming, file upload, MIDI playback, sheet music rendering, and guitar tab display.
+**Frontend** (Next.js 14 + React + Tailwind) handles the UI: chat interface with SSE streaming, file upload, MIDI playback with piano-roll visualization, sheet music rendering, and guitar tab display.
 
-**Backend** (FastAPI) wraps the Python domain code as a thin HTTP/SSE layer. The domain modules (`app/llm/`, `app/theory/`, `app/audio/`, `app/output/`, `app/knowledge/`) are unchanged from earlier phases.
+**Backend** (FastAPI) serves as a thin HTTP/SSE layer over the Python domain modules. The conversation pipeline (`app/llm/pipeline.py`) orchestrates RAG retrieval, LLM streaming, tool execution, and conversation history management.
+
+**Streaming:** The frontend connects via Server-Sent Events (SSE). The backend streams structured events — tokens, tool calls, status updates, thinking blocks, and typed content parts (ABC notation, guitar tab, MIDI references) — so the UI can render each piece with the appropriate component as it arrives.
+
+**Content Parts Architecture:** Tool results that produce renderable content (notation, tabs, MIDI files) are emitted as typed `StreamPart` events. The frontend's `MessageBubble` component uses a declarative `PartRenderer` to match each part type to its specialized component (SheetMusic, GuitarTab, MidiPlayer), keeping rendering logic clean and extensible.
 
 ## Project Structure
 
@@ -158,13 +176,20 @@ woodshed-ai/
 │   ├── audio/                  # MIDI analysis + audio transcription
 │   ├── knowledge/              # ChromaDB vector store + RAG ingestion
 │   ├── llm/                    # Ollama client, conversation pipeline, prompts
+│   │   ├── ollama_client.py    # Streaming chat + embeddings
+│   │   ├── pipeline.py         # RAG → LLM → tool-call loop with history
+│   │   └── prompts.py          # System prompt, voice & tone, few-shot examples
 │   ├── output/                 # MIDI generation, notation, guitar tab, export
 │   └── theory/                 # music21 theory engine + tool schemas
 ├── frontend/
 │   ├── src/
 │   │   ├── app/                # Next.js app router (layout, page, globals)
 │   │   ├── components/         # React components (chat, music, UI)
-│   │   ├── hooks/              # useChat, useStatus
+│   │   │   ├── MessageBubble.tsx   # Message rendering + PartRenderer
+│   │   │   ├── MidiPlayer.tsx      # MIDI playback + piano-roll labels
+│   │   │   ├── SheetMusic.tsx      # ABC notation rendering (abcjs)
+│   │   │   └── ExamplePrompts.tsx  # Conversation starters
+│   │   ├── hooks/              # useChat (SSE streaming), useStatus
 │   │   └── lib/                # API client, types, markdown, session
 │   ├── e2e/                    # Playwright E2E tests
 │   ├── jest.config.ts          # Jest config + coverage thresholds
@@ -197,6 +222,8 @@ The LLM has access to structured tools powered by music21:
 | `generate_guitar_tab` | ASCII chord diagrams for a progression |
 | `generate_notation` | ABC notation for sheet music rendering |
 | `export_for_daw` | MIDI + MusicXML export with DAW import instructions |
+
+Tools are called automatically by the LLM during conversation. Results are rendered inline — MIDI files get a playback widget, notation renders as sheet music, tabs display as chord diagrams. The pipeline supports up to 3 rounds of tool calls per message, with condensed results stored in conversation history to preserve context without wasting tokens.
 
 ## Running Tests
 
@@ -233,7 +260,7 @@ cd frontend && npx playwright test
 | Backend API | [FastAPI](https://fastapi.tiangolo.com/) + SSE streaming |
 | Frontend | [Next.js](https://nextjs.org/) 14 + React + TypeScript |
 | Styling | [Tailwind CSS](https://tailwindcss.com/) |
-| MIDI playback | [html-midi-player](https://cifkao.github.io/html-midi-player/) |
+| MIDI playback | [html-midi-player](https://cifkao.github.io/html-midi-player/) + piano-roll labels |
 | Notation rendering | [abcjs](https://www.abcjs.net/) (client-side) |
 | Testing | pytest, Jest, Playwright |
 

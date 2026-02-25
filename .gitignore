@@ -40,6 +40,14 @@ frontend/out/
 # Dev launcher PID tracking
 .dev.pids
 
+# Test artifacts
+.coverage
+htmlcov/
+frontend/test-results/
+
+# Claude Code
+.claude/
+
 # Logs
 *.log
 

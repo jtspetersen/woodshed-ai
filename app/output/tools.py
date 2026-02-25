@@ -12,10 +12,7 @@ OUTPUT_TOOLS = [
         "type": "function",
         "function": {
             "name": "generate_progression_midi",
-            "description": (
-                "Generate a MIDI file from a chord progression so the user can hear it. "
-                "Use this after suggesting chords, or when the user asks to hear a progression."
-            ),
+            "description": "Generate a playable MIDI file from a chord progression.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -50,10 +47,7 @@ OUTPUT_TOOLS = [
         "type": "function",
         "function": {
             "name": "generate_scale_midi",
-            "description": (
-                "Generate a MIDI file playing a scale so the user can hear it. "
-                "Use this when suggesting scales or modes."
-            ),
+            "description": "Generate a MIDI file playing a scale.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -83,10 +77,7 @@ OUTPUT_TOOLS = [
         "type": "function",
         "function": {
             "name": "generate_guitar_tab",
-            "description": (
-                "Generate ASCII guitar tablature showing chord diagrams with fret positions. "
-                "Use when the user asks how to play chords on guitar or wants tab for a progression."
-            ),
+            "description": "Generate ASCII guitar chord diagrams for a progression.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -104,11 +95,7 @@ OUTPUT_TOOLS = [
         "type": "function",
         "function": {
             "name": "generate_notation",
-            "description": (
-                "Generate sheet music notation for a chord progression as ABC notation. "
-                "The notation will be rendered visually in the chat. "
-                "Use when the user asks to see notation or sheet music for a progression."
-            ),
+            "description": "Generate sheet music (ABC notation) for a chord progression.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -134,11 +121,7 @@ OUTPUT_TOOLS = [
         "type": "function",
         "function": {
             "name": "export_for_daw",
-            "description": (
-                "Export a chord progression as MIDI and MusicXML files for use in a DAW "
-                "(GarageBand, Logic, Ableton, Reaper, FL Studio). "
-                "Returns download paths and import instructions for the user's DAW."
-            ),
+            "description": "Export a progression as MIDI + MusicXML for a DAW.",
             "parameters": {
                 "type": "object",
                 "properties": {

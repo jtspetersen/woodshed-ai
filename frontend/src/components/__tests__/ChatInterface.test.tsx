@@ -105,7 +105,7 @@ describe("ChatInterface", () => {
     fireEvent.click(prompts[0]);
 
     expect(mockSendMessage).toHaveBeenCalledWith(
-      "Analyze the chord Dm7 for me",
+      "What are the notes in a Dm7 chord?",
       "Balanced",
     );
   });

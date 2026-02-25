@@ -4,7 +4,7 @@
 
 """Generate ABC notation from chord progressions and scales for browser rendering."""
 
-from music21 import harmony, note, scale
+from music21 import harmony, interval, note, scale
 
 from app.theory.engine import _parse_key_string
 
@@ -112,11 +112,15 @@ def chords_to_abc(
     ]
 
     # Build the notation body — each chord as a whole-note chord
+    # Voiced near middle C (C4) for treble-clef readability.
+    up_octave = interval.Interval("P8")
     measures = []
     for chord_symbol in chords:
         try:
             cs = harmony.ChordSymbol(chord_symbol)
-            pitches = cs.pitches
+            # music21 defaults to octave 2-3 voicings; transpose up one
+            # octave so chords sit in the C4-C5 range (treble clef sweet spot)
+            pitches = [p.transpose(up_octave) for p in cs.pitches]
             # Convert pitches to ABC notation
             abc_notes = [_pitch_to_abc(p) for p in pitches]
             # Chord annotation above staff + chord notes

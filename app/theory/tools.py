@@ -23,7 +23,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "analyze_chord",
-            "description": "Analyze a chord symbol and return its root, quality, notes, and intervals. Use this when the user asks about a specific chord.",
+            "description": "Analyze a chord symbol: root, quality, notes, intervals.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -40,7 +40,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "analyze_progression",
-            "description": "Analyze a chord progression to detect the key and provide Roman numeral analysis. Use this when the user gives you a series of chords to analyze.",
+            "description": "Detect key and Roman numeral analysis for a chord progression.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -62,7 +62,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "suggest_next_chord",
-            "description": "Suggest chords that could follow a given chord progression, based on common resolution patterns. Use when the user asks 'what comes next' or wants chord suggestions.",
+            "description": "Suggest next chords for a progression.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -85,7 +85,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_scale_for_mood",
-            "description": "Suggest scales that match a given mood or emotional descriptor. Use when the user describes a feeling or atmosphere they want to create.",
+            "description": "Suggest scales matching a mood or emotional descriptor.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -106,7 +106,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "detect_key",
-            "description": "Detect the most likely musical key from a list of notes. Use when the user provides notes and wants to know what key they're in.",
+            "description": "Detect the most likely key from a set of notes.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -124,7 +124,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_chord_voicings",
-            "description": "Get common guitar voicings (fret positions) for a chord. Use when the user asks how to play a chord on guitar.",
+            "description": "Get guitar fret positions for a chord.",
             "parameters": {
                 "type": "object",
                 "properties": {
@@ -145,7 +145,7 @@ MUSIC_TOOLS = [
         "type": "function",
         "function": {
             "name": "get_related_chords",
-            "description": "Find chord substitutions, extensions, and borrowed chords related to a given chord. Use when the user wants alternatives or variations of a chord.",
+            "description": "Find substitutions, extensions, and related chords.",
             "parameters": {
                 "type": "object",
                 "properties": {

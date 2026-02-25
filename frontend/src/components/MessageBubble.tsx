@@ -1,11 +1,10 @@
 "use client";
 
-import { useMemo, useState, useEffect, lazy, Suspense } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import dynamic from "next/dynamic";
-import type { DisplayMessage } from "@/lib/types";
+import type { ContentPart, DisplayMessage } from "@/lib/types";
 import { renderMarkdown } from "@/lib/markdown";
 import { getFileUrl, getMidiDataUri } from "@/lib/api";
-import { extractMusicBlocks } from "@/lib/music-detection";
 import GuitarTab from "./GuitarTab";
 import ToolCallBlock from "./ToolCallBlock";
 
@@ -16,44 +15,106 @@ interface MessageBubbleProps {
   message: DisplayMessage;
 }
 
-/** Splits content into alternating text + music block segments for inline rendering. */
-function useContentSegments(content: string, isAssistant: boolean) {
-  return useMemo(() => {
-    if (!isAssistant) return [{ type: "text" as const, content }];
+/** Renders a single content part with the appropriate component. */
+function PartRenderer({ part }: { part: ContentPart }) {
+  switch (part.type) {
+    case "text":
+      if (!part.text.trim()) return null;
+      return (
+        <div
+          className="font-body text-sm text-amber-100
+                     [&_strong]:font-bold [&_em]:italic
+                     [&_pre]:my-2 [&_code]:text-amber-300
+                     [&_a]:text-amber-400 [&_a]:underline"
+          dangerouslySetInnerHTML={{ __html: renderMarkdown(part.text) }}
+        />
+      );
+    case "abc":
+      return (
+        <Suspense
+          fallback={
+            <pre className="font-mono text-sm bg-bark-800 p-3 my-2 rounded-md text-amber-100">
+              {part.abc}
+            </pre>
+          }
+        >
+          <SheetMusic abc={part.abc} />
+        </Suspense>
+      );
+    case "tab":
+      return <GuitarTab tab={part.tab} />;
+    case "midi":
+      return (
+        <Suspense
+          fallback={
+            <div className="text-bark-400 text-sm my-2">
+              Loading MIDI player...
+            </div>
+          }
+        >
+          <MidiPlayerWithDataUri filename={part.filename} />
+        </Suspense>
+      );
+    case "file":
+      return <FileDownloadLink filename={part.filename} />;
+  }
+}
 
-    const blocks = extractMusicBlocks(content);
-    if (blocks.length === 0) return [{ type: "text" as const, content }];
-
-    const segments: Array<
-      | { type: "text"; content: string }
-      | { type: "abc"; content: string }
-      | { type: "tab"; content: string }
-    > = [];
-
-    let cursor = 0;
-    for (const block of blocks) {
-      if (block.start > cursor) {
-        segments.push({ type: "text", content: content.slice(cursor, block.start) });
-      }
-      segments.push({ type: block.type as "abc" | "tab", content: block.content });
-      cursor = block.end;
-    }
-    if (cursor < content.length) {
-      segments.push({ type: "text", content: content.slice(cursor) });
-    }
-
-    return segments;
-  }, [content, isAssistant]);
+/** Download link pill for a non-MIDI file. */
+function FileDownloadLink({ filename }: { filename: string }) {
+  return (
+    <a
+      href={getFileUrl(filename)}
+      download
+      className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
+                 bg-bark-800 border border-bark-600 text-xs font-mono
+                 text-amber-400 hover:border-amber-400 transition-colors duration-fast"
+      data-testid="file-link"
+    >
+      <svg
+        className="w-3.5 h-3.5"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={2}
+        aria-hidden="true"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16"
+        />
+      </svg>
+      {filename}
+    </a>
+  );
 }
 
 export default function MessageBubble({ message }: MessageBubbleProps) {
   const isUser = message.role === "user";
-  const segments = useContentSegments(message.content, !isUser);
 
-  // Check if any attached files are MIDI for inline playback
-  const midiFiles = message.files?.filter(
-    (f) => f.endsWith(".mid") || f.endsWith(".midi"),
-  );
+  // Build parts array — use message.parts if available, else construct from content + files
+  let parts: ContentPart[];
+  if (message.parts && message.parts.length > 0) {
+    parts = message.parts;
+  } else {
+    parts = [{ type: "text" as const, text: message.content }];
+    // Legacy: if files are present but no parts, generate midi/file parts from files
+    if (message.files) {
+      for (const f of message.files) {
+        const filename = f.includes("/")
+          ? f.split("/").pop()!
+          : f.includes("\\")
+            ? f.split("\\").pop()!
+            : f;
+        if (f.endsWith(".mid") || f.endsWith(".midi")) {
+          parts.push({ type: "midi", filename });
+        } else {
+          parts.push({ type: "file", filename });
+        }
+      }
+    }
+  }
 
   return (
     <div
@@ -78,103 +139,10 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
           <ToolCallBlock toolCalls={message.toolCalls} />
         )}
 
-        {segments.map((seg, i) => {
-          if (seg.type === "text") {
-            return (
-              <div
-                key={i}
-                className="font-body text-sm text-amber-100
-                           [&_strong]:font-bold [&_em]:italic
-                           [&_pre]:my-2 [&_code]:text-amber-300
-                           [&_a]:text-amber-400 [&_a]:underline"
-                dangerouslySetInnerHTML={{ __html: renderMarkdown(seg.content) }}
-              />
-            );
-          }
-          if (seg.type === "abc") {
-            return (
-              <Suspense
-                key={i}
-                fallback={
-                  <pre className="font-mono text-sm bg-bark-800 p-3 my-2 rounded-md text-amber-100">
-                    {seg.content}
-                  </pre>
-                }
-              >
-                <SheetMusic abc={seg.content} />
-              </Suspense>
-            );
-          }
-          if (seg.type === "tab") {
-            return <GuitarTab key={i} tab={seg.content} />;
-          }
-          return null;
-        })}
-
-        {/* Inline MIDI players for attached MIDI files */}
-        {midiFiles && midiFiles.length > 0 && (
-          <div className="mt-2" data-testid="midi-players">
-            {midiFiles.map((file) => {
-              const filename = file.includes("/")
-                ? file.split("/").pop()!
-                : file.includes("\\")
-                  ? file.split("\\").pop()!
-                  : file;
-              return (
-                <Suspense
-                  key={file}
-                  fallback={
-                    <div className="text-bark-400 text-sm my-2">
-                      Loading MIDI player...
-                    </div>
-                  }
-                >
-                  <MidiPlayerWithDataUri filename={filename} />
-                </Suspense>
-              );
-            })}
-          </div>
-        )}
-
-        {/* File download links */}
-        {message.files && message.files.length > 0 && (
-          <div className="flex flex-wrap gap-2 mt-3 pt-3 border-t border-bark-600">
-            {message.files.map((file) => {
-              const filename = file.includes("/")
-                ? file.split("/").pop()!
-                : file.includes("\\")
-                  ? file.split("\\").pop()!
-                  : file;
-              return (
-                <a
-                  key={file}
-                  href={getFileUrl(filename)}
-                  download
-                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full
-                             bg-bark-800 border border-bark-600 text-xs font-mono
-                             text-amber-400 hover:border-amber-400 transition-colors duration-fast"
-                  data-testid="file-link"
-                >
-                  <svg
-                    className="w-3.5 h-3.5"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
-                    aria-hidden="true"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M12 4v12m0 0l-4-4m4 4l4-4M4 18h16"
-                    />
-                  </svg>
-                  {filename}
-                </a>
-              );
-            })}
-          </div>
-        )}
+        {/* Declarative content parts rendering */}
+        {parts.map((part, i) => (
+          <PartRenderer key={i} part={part} />
+        ))}
       </div>
     </div>
   );
@@ -182,7 +150,6 @@ export default function MessageBubble({ message }: MessageBubbleProps) {
 
 /** Fetches MIDI data URI and renders player */
 function MidiPlayerWithDataUri({ filename }: { filename: string }) {
-  // Use a simple state approach for data URI fetching
   const { useMidiSrc } = useMidiDataUriHook(filename);
   return <MidiPlayer src={useMidiSrc} />;
 }

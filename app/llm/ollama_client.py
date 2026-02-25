@@ -23,16 +23,14 @@ def chat(
     optionally .message.tool_calls.
     """
     model = model or config.LLM_MODEL
-    opts = {}
+    opts: dict = {"num_ctx": config.NUM_CTX}
     if temperature is not None:
         opts["temperature"] = temperature
 
     try:
-        kwargs = dict(model=model, messages=messages)
+        kwargs = dict(model=model, messages=messages, options=opts)
         if tools:
             kwargs["tools"] = tools
-        if opts:
-            kwargs["options"] = opts
         return ollama.chat(**kwargs)
     except ollama.ResponseError as e:
         raise OllamaError(f"Ollama responded with an error: {e}") from e
@@ -53,16 +51,14 @@ def chat_stream(
     Each yielded item is a partial response dict from Ollama.
     """
     model = model or config.LLM_MODEL
-    opts = {}
+    opts: dict = {"num_ctx": config.NUM_CTX}
     if temperature is not None:
         opts["temperature"] = temperature
 
     try:
-        kwargs = dict(model=model, messages=messages, stream=True)
+        kwargs = dict(model=model, messages=messages, stream=True, options=opts)
         if tools:
             kwargs["tools"] = tools
-        if opts:
-            kwargs["options"] = opts
         yield from ollama.chat(**kwargs)
     except ollama.ResponseError as e:
         raise OllamaError(f"Ollama responded with an error: {e}") from e

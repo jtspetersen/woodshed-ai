@@ -40,6 +40,13 @@ describe("MidiPlayer", () => {
     expect(screen.getByText("No MIDI source available.")).toBeInTheDocument();
   });
 
+  it("renders header with MIDI Playback label", async () => {
+    await act(async () => {
+      render(<MidiPlayer src="test.mid" />);
+    });
+    expect(screen.getByText("MIDI Playback")).toBeInTheDocument();
+  });
+
   it("renders web component elements after loading", async () => {
     await act(async () => {
       render(<MidiPlayer src="test.mid" />);

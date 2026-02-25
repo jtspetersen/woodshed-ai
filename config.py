@@ -21,6 +21,7 @@ EMBEDDING_MODEL = os.getenv("EMBEDDING_MODEL", "nomic-embed-text")
 TEMPERATURE = float(os.getenv("TEMPERATURE", "0.7"))
 
 # Performance
+NUM_CTX = int(os.getenv("NUM_CTX", "8192"))
 RAG_RESULTS = int(os.getenv("RAG_RESULTS", "3"))
 
 # Data paths

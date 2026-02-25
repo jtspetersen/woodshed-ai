@@ -1,6 +1,7 @@
 import type {
   ChatHistoryResponse,
   ChatSSEEvent,
+  ContentPart,
   FileUploadResponse,
   MidiDataUriResponse,
   StatusResponse,
@@ -45,6 +46,7 @@ export function streamChat(
     onThinking?: (text: string) => void;
     onToolCall?: (toolCall: ToolCallInfo) => void;
     onFiles?: (files: string[]) => void;
+    onPart?: (part: ContentPart) => void;
     onDone?: () => void;
     onError?: (message: string) => void;
   },
@@ -104,6 +106,17 @@ export function streamChat(
                 callbacks.onToolCall?.(parsed as ToolCallInfo);
               } else if (currentEvent === "files" && "files" in parsed) {
                 callbacks.onFiles?.(parsed.files as string[]);
+              } else if (currentEvent.startsWith("part:")) {
+                const partType = currentEvent.slice(5);
+                if (partType === "abc" && "abc" in parsed) {
+                  callbacks.onPart?.({ type: "abc", abc: parsed.abc as string });
+                } else if (partType === "tab" && "tab" in parsed) {
+                  callbacks.onPart?.({ type: "tab", tab: parsed.tab as string });
+                } else if (partType === "midi" && "filename" in parsed) {
+                  callbacks.onPart?.({ type: "midi", filename: parsed.filename as string });
+                } else if (partType === "file" && "filename" in parsed) {
+                  callbacks.onPart?.({ type: "file", filename: parsed.filename as string });
+                }
               } else if (currentEvent === "done") {
                 callbacks.onDone?.();
               } else if (currentEvent === "error" && "message" in parsed) {

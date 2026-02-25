@@ -17,9 +17,17 @@ export default function SheetMusic({ abc }: SheetMusicProps) {
       try {
         const abcjs = await import("abcjs");
         if (cancelled || !containerRef.current) return;
+        // forecolor/staffcolor/selectionColor are valid abcjs options
+        // but missing from the @types/abcjs type definitions
         abcjs.renderAbc(containerRef.current, abc, {
           responsive: "resize",
           staffwidth: 600,
+          scale: 0.8,
+          ...({
+            forecolor: "#FEECD2",        // amber-100
+            selectionColor: "#F5A623",   // amber-400
+            staffcolor: "#6B5B4B",       // bark-600
+          } as Record<string, string>),
         });
       } catch {
         if (!cancelled) setError(true);
@@ -45,7 +53,7 @@ export default function SheetMusic({ abc }: SheetMusicProps) {
   return (
     <div
       ref={containerRef}
-      className="bg-bark-50 rounded-md p-3 my-2 overflow-x-auto [&_svg]:max-w-full"
+      className="bg-bark-800 border border-bark-600 rounded-md p-3 my-2 overflow-x-auto [&_svg]:max-w-full"
       data-testid="sheet-music"
     />
   );

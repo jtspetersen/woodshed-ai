@@ -25,6 +25,40 @@ body::before {
   border-radius: 6px;
 }
 
+/* MIDI player + visualizer theming — match bark/amber design system */
+midi-player {
+  display: block;
+  width: 100%;
+  --primary-color: #F5A623;           /* amber-400 */
+  --background: #3D3229;              /* bark-800 */
+  --foreground: #FEECD2;              /* amber-100 */
+}
+
+midi-player::part(control-panel) {
+  background: #3D3229;                /* bark-800 */
+}
+
+midi-visualizer {
+  display: block;
+  width: 100%;
+  overflow-x: auto;
+  border-radius: 6px;
+  background: #2A211B;              /* bark-900 */
+}
+
+/* Piano roll note styling — colors set via config.noteRGB/activeNoteRGB */
+midi-visualizer svg rect.note {
+  rx: 2;
+  ry: 2;
+}
+
+/* Note labels injected by MidiPlayer.tsx */
+midi-visualizer svg .note-labels text {
+  font-family: "JetBrains Mono", monospace;
+  fill: #1A1310;
+  pointer-events: none;
+}
+
 /* VU meter bar animation */
 @keyframes vu-pulse {
   0%, 100% { transform: scaleY(0.3); }
